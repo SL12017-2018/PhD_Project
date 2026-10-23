@@ -1,0 +1,40 @@
+# Core PyTorch and ML dependencies
+torch>=2.0.0
+torchvision>=0.15.0
+torchaudio>=2.0.0
+numpy>=1.21.0
+scikit-learn>=1.2.0
+
+# Transformers and Audio Processing
+transformers>=4.30.0
+datasets>=2.12.0
+librosa>=0.10.0
+soundfile>=0.12.0
+speechbrain>=0.5.15
+
+# Data Processing
+pandas>=1.5.0
+tqdm>=4.64.0
+pyyaml>=6.0
+h5py>=3.8.0
+
+# Visualization and Metrics
+matplotlib>=3.6.0
+seaborn>=0.12.0
+plotly>=5.14.0
+
+# Training and Experiment Tracking
+pytorch-lightning>=2.0.0
+lightning>=2.0.0
+torchmetrics>=0.11.0
+wandb>=0.15.0
+tensorboard>=2.12.0
+
+# Utilities
+pathlib
+collections
+typing-extensions
+regex
+
+# Optional: Better performance
+accelerate>=0.20.0

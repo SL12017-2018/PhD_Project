@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+*.ckpt
+checkpoints_conservative/
+logs/
+logs_*/
+results/

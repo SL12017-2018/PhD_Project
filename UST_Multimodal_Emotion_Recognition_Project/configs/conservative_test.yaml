@@ -1,0 +1,188 @@
+# IEMOCAP MemoCMT Configuration - Conservative for RTX 4080 16GB
+# Ultra-conservative settings to prevent system crashes
+
+# Dataset Configuration
+dataset:
+  name: "iemocap"
+  data_path: "../iemocap_dataset"
+  root_path: "../iemocap_dataset"
+  export_path: "../iemocap_export"
+  sample_rate: 16000
+  max_length: 128          # Increased text length for better context
+  max_audio_length: 128000 # 8 seconds (16000 * 8) for better audio context
+  max_audio_len_s: 8.0     # Extended audio clips for richer features
+  num_workers: 2           # Increased workers for faster data loading
+  emotion_labels:
+    angry: 0
+    happy: 1
+    sad: 2
+    neutral: 3
+    excited: 4
+    frustrated: 5
+  num_classes: 6
+  context_window: 5 # Minimal context
+  
+# Model Configuration - Ultra-lightweight
+model:
+  # Pretrained Encoders - Optimized progressive unfreezing for 30 epochs
+  text:
+    model_name: "j-hartmann/emotion-english-distilroberta-base"
+    pool: "cls"
+    freeze: true
+    unfreeze_layers: 2  # Gradually unfreeze layers
+    unfreeze_schedule:
+      epoch_3: 1   # Unfreeze top 1 layer early (epoch 3)
+      epoch_6: 2   # Unfreeze top 2 layers (epoch 6)
+      epoch_12: 4  # Unfreeze top 4 layers (epoch 12)
+      epoch_20: 6  # Unfreeze top 6 layers (epoch 20)
+      epoch_25: -1 # Unfreeze all layers (epoch 25)
+    output_dim: 768
+  
+  audio:
+    model_name: "facebook/wav2vec2-base-960h"
+    freeze: true
+    unfreeze_layers: 2  # Gradually unfreeze layers
+    unfreeze_schedule:
+      epoch_3: 1   # Unfreeze top 1 layer early (epoch 3)
+      epoch_6: 2   # Unfreeze top 2 layers (epoch 6)
+      epoch_12: 4  # Unfreeze top 4 layers (epoch 12)
+      epoch_20: 6  # Unfreeze top 6 layers (epoch 20)
+      epoch_25: -1 # Unfreeze all layers (epoch 25)
+    output_dim: 768
+    
+  # MemoCMT Architecture - Enhanced multi-layer configuration
+  memocmt:
+    proj_dim: 256      # Increased projection dimension for richer representations
+    num_layers: 6      # Multi-layer architecture for better cross-modal fusion
+    num_heads: 8       # More attention heads for complex interactions
+    ff_dim: 1024       # Larger feed-forward for better capacity
+    dropout: 0.15      # Slightly higher dropout for regularization
+    speaker_embed_dim: 64  # Richer speaker embeddings
+    global_mem_dim: 256    # Enhanced memory capacity
+    use_residual: true
+    use_layer_norm: true
+    # Advanced MemoCMT features
+    use_cross_attention: true    # Enable cross-modal attention layers
+    use_memory_bank: true        # Enable episodic memory mechanisms
+    memory_bank_size: 512        # Size of memory bank
+    use_gating: true             # Use gating mechanisms for better fusion
+    attention_temperature: 0.1   # Temperature for attention scaling
+    layer_scale: true            # Layer scaling for stable training
+    
+  # R-AIME Head - Enhanced functionality for better decision making
+  raime:
+    fusion_dim: 256     # Increased to match enhanced MemoCMT
+    hidden_dim: 512     # Larger hidden dimension for better capacity
+    dropout: 0.15       # Matched with MemoCMT
+    use_temperature_scaling: true   # ✅ ENABLE Decision Agent calibration
+    explainability: true            # ✅ ENABLE Explainability Agent
+    # Enhanced R-AIME features
+    num_fusion_layers: 3            # Multi-layer fusion for complex decisions
+    attention_heads: 8              # Multi-head attention in fusion
+    use_skip_connections: true      # Skip connections for gradient flow
+    uncertainty_method: "monte_carlo"  # Better uncertainty estimation
+    mc_samples: 10                  # Monte Carlo samples for uncertainty
+    feature_attribution_method: "integrated_gradients"  # Advanced attribution
+    concept_bottleneck: true        # Interpretable concept representations
+
+# Training Configuration - Extended for better convergence
+training:
+  seed: 42
+  max_epochs: 30         # Extended epochs for better convergence
+  batch_size: 6          # Reduced slightly due to larger model and longer audio
+  gradient_accumulation_steps: 3   # Accumulate to effective batch of 18
+  val_check_interval: 1.0
+  log_every_n_steps: 50    # Log less frequently
+  gradient_clip_val: 1.0
+  
+  # Enable model checkpointing and validation monitoring
+  enable_checkpointing: true
+  monitor_metric: "val_weighted_f1"
+  
+  # Optimization - Improved for full training
+  optimizer:
+    type: "adamw"
+    lr: 3e-5      # Increased learning rate for better convergence
+    encoder_lr: 1e-5  # Slightly higher encoder learning rate
+    weight_decay: 0.01
+    
+  # Learning rate scheduling - Optimized for 30 epochs
+  scheduler:
+    type: "cosine_annealing"
+    T_max: 30  # Match max_epochs
+    eta_min: 1e-7
+    warmup_epochs: 3  # Increased warmup for stability
+    
+  # Loss Configuration
+  loss:
+    type: "cross_entropy"  # Simple loss
+    class_weights: null
+  
+  # Early Stopping - More patient for 30-epoch training
+  early_stopping:
+    enabled: true
+    patience: 8  # Increased patience for longer training
+    monitor: "val_weighted_f1"
+    mode: "max"
+    min_delta: 0.001
+  
+  # Directories
+  checkpoint_dir: "./checkpoints_conservative"
+  log_dir: "./logs_conservative"
+  
+# Data Loading - Optimized for full dataset
+dataloader:
+  num_workers: 2      # Enable multiprocessing for faster loading
+  pin_memory: true    # Enable for GPU transfer speed
+  prefetch_factor: 2
+  persistent_workers: true  # Keep workers alive between epochs
+
+# Evaluation - Full metrics tracking with result saving
+evaluation:
+  metrics:
+    - "accuracy"
+    - "weighted_f1"
+    - "macro_f1"
+    - "precision"
+    - "recall"
+    - "confusion_matrix"
+    - "classification_report"
+  save_predictions: true  # Save predictions for analysis
+  save_attention_maps: false  # Keep disabled for memory
+  save_explainability: true   # Save explainability results
+  save_results_txt: true      # Save detailed results to TXT
+  save_results_csv: true      # Save metrics to CSV
+  results_dir: "./results"    # Directory for saving results
+
+# Logging - Enhanced with per-class metrics display
+logging:
+  project_name: "IEMOCAP_FullTraining_RAIME"
+  experiment_name: "full_raime_30epochs"
+  log_every_n_steps: 50
+  save_every_n_epochs: 2
+  track_grad_norm: true  # Monitor gradient norms
+  log_lr: true          # Log learning rate changes
+  log_raime_components: true  # Log R-AIME component details
+  log_per_class_metrics: true  # ✅ ENABLE per-class metrics logging
+  display_validation_metrics: true  # ✅ ENABLE validation metrics display
+  
+checkpoints:
+  save_top_k: 3  # Save top 3 models
+  monitor: "val_weighted_f1"
+  mode: "max"
+  save_last: true  # Also save the last checkpoint
+  every_n_epochs: 2  # Save checkpoint every 2 epochs
+  
+# Hardware Configuration - Conservative
+hardware:
+  device: "cuda"
+  precision: "32"        # Full precision to avoid mixed precision issues
+  compile: false
+  
+# Paths
+paths:
+  data_dir: "./data"
+  model_dir: "./models"
+  checkpoints_dir: "./checkpoints_conservative"
+  results_dir: "./results"
+  logs_dir: "./logs_conservative"
